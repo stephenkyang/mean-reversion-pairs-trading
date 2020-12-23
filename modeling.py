@@ -1,10 +1,29 @@
 import numpy as np
 import pandas as pd
 import statsmodels
-np.random.seed(87)
-import matplotlib.pyplot as plt
-Xreturns = np.random.normal(0, 1, 100)
-# sum them and shift all the prices up
-X = pd.Series(np.cumsum(Xreturns), name='X') + 50
-X.plot(figsize=(15,7))
-plt.show()
+import statsmodels.formula.api as smf
+import statsmodels.api as sm
+import statsmodels.tsa as ts
+import yfinance as yf
+
+class Model(object):
+    def __init__(self, csv):
+        self.csv = pd.read_csv(csv)
+        self.corr_mat = None
+        self.coint_mat = None #potentially there if you find out how to utilize johansen test for coint
+        self.hedge_ratio = None #for coint
+    def correlation(self):
+        self.corr_mat = self.csv.corr()
+        for x in data.corr_mat:
+            data.corr_mat[x][x]=0
+        return self.corr_mat
+    def cointergration(self, ticker1, ticker2):
+        print(ts.stattools.coint(self.csv[ticker1],self.csv[ticker2]))
+
+
+
+data = Model("historical-data.csv")
+data.correlation()
+
+
+print(data.cointergration("AAPL", "ATLC"))
