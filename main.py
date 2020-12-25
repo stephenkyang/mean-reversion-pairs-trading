@@ -22,7 +22,7 @@ class yFinanceScraper(object):
                 self.df = data
                 self.first = False
             else:
-                self.df =  pd.concat([self.df, data], axis=1)
+                self.df = self.df.join(data)
 
 
 data = pd.read_csv("/Users/stephen/Desktop/Pairs Trading Project/ticker-names-on-NASDAQ-NYSE.csv")
@@ -45,7 +45,7 @@ class Model(object):
             data.corr_mat[x][x]=0
         return self.corr_mat
     def cointergration(self, ticker1, ticker2):
-        print(ts.stattools.coint(self.csv[ticker1],self.csv[ticker2]))
+        return ts.stattools.coint(self.csv[ticker1],self.csv[ticker2])
 
 
 data = Model("historical-data.csv")
