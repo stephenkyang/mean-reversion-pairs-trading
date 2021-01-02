@@ -9,7 +9,7 @@ from sklearn import preprocessing
 
 
 data = pd.read_csv("historical-data.csv")
-data = data[data.columns[:10]]
+data = data[data.columns[:100]]
 
 # 1. Do the necessary regression models to find cointegrating pairs, whether that be ADF, EGranger, or Johaness
 # 2. Find pairs with wide spreads, through the calculation of stockA-stockB*(beta of regressive analysis)
@@ -68,4 +68,5 @@ finding_cointegrated_pairs(correlated_pairs)
 print(correlated_pairs)
 print(cointegrated_pairs)
 
-plotting_stocks(["A", "AAPL"])
+
+#plotting_stocks(["ACC", "ABCB"])
