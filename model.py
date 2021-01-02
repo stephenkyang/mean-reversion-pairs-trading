@@ -13,6 +13,8 @@ data = pd.read_csv("historical-data.csv")
 # 1. Do the necessary regression models to find cointegrating pairs, whether that be ADF, EGranger, or Johaness
 # 2. Find pairs with wide spreads, through the calculation of stockA-stockB*(beta of regressive analysis)
 # 3. Output certain pairs that are cointergrated/correlated
+# 4. (Optional) Build a simple GUI that helps visualize the cointegration/spreads
+# 5. (Optional) Make it live?
 
 def correlation(data):
     corr_mat = data.corr()
@@ -24,25 +26,31 @@ def correlation(data):
 def cointergration_test(ticker1, ticker2):
     return statsmodels.tsa.stattools.coint(data[ticker1],data[ticker2])
 
+#will complete later as it is comparable to the EGranger test
 def ADF(ticker1, ticker2):
     return
 
 correlation_matrix = correlation(data)
-correlated_pairs = []
-cointegrated_pairs = []
+correlated_pairs = {}
+cointegrated_pairs = {}
 
-def finding_correlated_pairs(correlation_matrix):
-    nonlocal correlated_pairs
+def finding_correlated_pairs(correlation_matrix, threshold =.75):
     for ticker in correlation_matrix:
         for other_ticker, value in correlation_matrix[ticker].items():
-            if value > .6:
-                correlated_pairs.append([ticker,other_ticker])
+            if value > threshold: #number arbitrary, revise if necessary
+                try:
+                    correlated_pairs[ticker].extend([other_ticker])
+                except KeyError:
+                    correlated_pairs[ticker] = [other_ticker]
 
 def finding_cointegrated_pairs(correlated_pairs):
-    for ticker, other_ticker in correlated_pairs:
-        results = cointergration_test(ticker, other_ticker)
-        if results[0] < results[2][0]:
-            cointegrated_pairs.append([ticker, other_ticker])
+    for ticker in correlated_pairs:
+        for other_ticker in correlated_pairs[ticker]:
+            results = cointergration_test(ticker, other_ticker)
+            try:
+                correlated_pairs[ticker].extend([other_ticker])
+            except KeyError:
+                correlated_pairs[ticker] = [other_ticker]
 
 def plotting_stocks(pair):
     plt.plot(data["Date"], data[pair[0]], label = pair[0])
@@ -50,5 +58,7 @@ def plotting_stocks(pair):
     plt.legend(loc='upper left', frameon=False)
     plt.show()
 
+finding_correlated_pairs(correlation_matrix)
+finding_cointegrated_pairs(correlated_pairs)
 print(correlated_pairs)
 print(cointegrated_pairs)
