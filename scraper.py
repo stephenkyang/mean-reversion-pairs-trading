@@ -16,7 +16,7 @@ class yFinanceScraper(object):
         for name in self.names:
             self.namelist.append(name)
             ticker = yf.Ticker(name)
-            data = ticker.history(period="1y").loc[: , ["Close"]]
+            data = ticker.history(period="2y").loc[: , ["Close"]]
             data = data.rename(columns={"Date": "Date", "Close": name})
             if self.first:
                 self.df = data
