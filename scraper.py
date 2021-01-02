@@ -30,24 +30,8 @@ data = data[data["Volume"] > 10000][data["IPO Year"] < 2010][data["Symbol"] != "
 
 #for storing testing data
 scraper = yFinanceScraper(data)
+for ticker in scraper.df:
+    normalized_ticker_data = (scraper.df[ticker]-scraper.df[ticker].min())/(scraper.df[ticker].max()-scraper.df[ticker].min())
+    scraper.df[ticker] = normalized_ticker_data
+
 scraper.df.to_csv("historical-data.csv")
-#for real time use
-
-class Model(object):
-    def __init__(self, csv):
-        self.csv = pd.read_csv(csv)
-        self.corr_mat = None
-        self.coint_mat = None #potentially there if you find out how to utilize johansen test for coint
-        self.hedge_ratio = None #for coint
-    def correlation(self):
-        self.corr_mat = self.csv.corr()
-        for x in data.corr_mat:
-            data.corr_mat[x][x]=0
-        return self.corr_mat
-    def cointergration(self, ticker1, ticker2):
-        return ts.stattools.coint(self.csv[ticker1],self.csv[ticker2])
-
-
-data = Model("historical-data.csv")
-data.correlation()
-print(data.cointergration("AAPL", "ATLC"))
