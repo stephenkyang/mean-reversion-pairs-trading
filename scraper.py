@@ -9,7 +9,7 @@ class yFinanceScraper(object):
     def __init__(self,names):
         self.names = names
         self.historicallist= []
-        for name in self.names:
+        for name in self.names[:200]:
             self.namelist.append(name)
             ticker = yf.Ticker(name)
             data = ticker.history(period="2y").loc[: , ["Close"]]
@@ -26,9 +26,11 @@ data = data[data["Volume"] > 10000][data["IPO Year"] < 2010][data["Symbol"] != "
 
 #for storing testing data
 scraper = yFinanceScraper(data)
-for ticker in scraper.df:
+
+#normalizing data
+"""for ticker in scraper.df:
     normalized_ticker_data = (scraper.df[ticker]-scraper.df[ticker].mean())/(scraper.df[ticker].std())
     scraper.df[ticker] = normalized_ticker_data
-
+"""
 
 scraper.df.to_csv("historical-data.csv")

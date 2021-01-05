@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import statsmodels.tsa.vector_ar.vecm
 from numpy import polyfit, sqrt, std, subtract, log
 
-#data cleaning as the conintegration test can't have any NaN values
+#data cleaning as the cointegration test can't have any NaN values
 
 data = pd.read_csv("historical-data.csv")
 data = data.replace("", np.nan, regex=True)
@@ -17,7 +17,8 @@ data = data[data.columns[0:100]]
 
 
 # 1. Do the necessary regression models to find cointegrating pairs, whether that be ADF, EGranger, or Johansen
-# 2. Find pairs with wide spreads, through the calculation of the Hurst exponent
+# 2. Find pairs with wide spreads, through the calculation of the Hurst exponent and calculating the half-life of
+#    the mean reversion
 # 3. Output certain pairs that are cointergrated/correlated
 # 4. (Optional) Build a simple GUI that helps visualize the cointegration/spreads
 # 5. (Optional) Make it live?
@@ -38,11 +39,10 @@ def OLS(ticker1, ticker2):
     spread = spread.fit()
     return data[ticker1] + (data[ticker2] * -spread.params[0])
 
-#ADF uses the spread of the two stocks, also calculated through
 def ADF(spread):
     return statsmodels.tsa.stattools.adfuller(spread)
 
-def finding_ADF_pairs(ticker1, ticker2):
+def ADF_test(ticker1, ticker2):
     return ADF(OLS(ticker1, ticker2))
 
 correlation_matrix = correlation(data)
@@ -64,26 +64,46 @@ def finding_correlated_pairs(correlation_matrix, threshold =.9): #threshold arbi
 def finding_cointegrated_pairs(corr_pairs):
     for ticker in corr_pairs:
         for other_ticker in corr_pairs[ticker]:
-            results = finding_ADF_pairs(ticker, other_ticker)
+            results = ADF_test(ticker, other_ticker)
             if results[0] < results[4]["1%"]:
                 try:
                     cointegrated_pairs[ticker].extend([other_ticker])
                 except KeyError:
                     cointegrated_pairs[ticker] = [other_ticker]
+
+#checking mean reversion (using Hurst exponents)
+def hurst_analysis(spread):
+    lags = range(2, 100)
+    tau = [sqrt(std(spread[lag:].subtract(spread[:-lag].values))) for lag in lags]
+    poly = polyfit(log(lags), log(tau), 1)
+    return poly[0]*2
+
+#checking how long mean revision will take place
+def half_life_test(spread):
+    spread_lag = spread.shift(1)
+    spread_lag.iloc[0] = spread_lag.iloc[1]
+    spread_ret = spread - spread_lag.values
+    spread_ret.iloc[0] = spread_ret.iloc[1]
+    spread_lag2 = sm.add_constant(spread_lag)
+    model = sm.OLS(spread_ret,spread_lag2)
+    res = model.fit()
+    return -np.log(2) / res.params[0]
+
+
+
+print(half_life_test(OLS("A","ASTE")))
+
+
 """
 finding_correlated_pairs(correlation_matrix)
 finding_cointegrated_pairs(correlated_pairs)
 print(cointegrated_pairs)
 """
-#checking mean reversion (using Hurst exponents)
-def hurst_analysis(spread):
-    lags = range(2, 100)
-    tau = [sqrt(std(subtract(spread[lag:], spread[:-lag]))) for lag in lags]
-    print(tau)
-    poly = polyfit(log(lags), log(tau), 1)
-    return poly[0]*2
-
-print(hurst_analysis(OLS("A", "ANSS")))
+"""
+print(ADF_test("A", "ASTE"))
+plt.plot(OLS("A", "ASTE"))
+plt.show()
+"""
 
 def plotting_stocks(pair):
     plt.plot(data["Date"], data[pair[0]], label = pair[0])
