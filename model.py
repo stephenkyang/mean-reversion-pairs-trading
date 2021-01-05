@@ -6,6 +6,7 @@ from statsmodels.tsa.stattools import adfuller as adf
 import matplotlib.pyplot as plt
 import statsmodels.tsa.vector_ar.vecm
 from numpy import polyfit, sqrt, std, subtract, log
+from scraper import yFinanceScraper
 
 #data cleaning as the cointegration test can't have any NaN values
 
@@ -14,7 +15,7 @@ data.iloc[0] = data.iloc[1]
 data = data.fillna(method='ffill')
 data = data.dropna(1)
 
-data = data[data.columns]
+data = data[data.columns[0:100]]
 
 
 # 1. Do the necessary regression models to find cointegrating pairs, whether that be ADF, EGranger, or Johansen (done)
@@ -45,6 +46,7 @@ def ADF(spread):
 
 def ADF_test(ticker1, ticker2):
     return ADF(OLS(ticker1, ticker2))
+
 
 correlation_matrix = correlation(data)
 
@@ -79,10 +81,11 @@ def finding_cointegrated_pairs(corr_pairs, reversion_time=15):
 
 #checking mean reversion (using Hurst exponents)
 def hurst_analysis(spread):
-    lags = range(2, 100)
+    lags = range(2, (lambda: 100 if int(yFinanceScraper.period) > 100 else int(yFinanceScraper.period) - 1)())
     tau = [sqrt(std(spread[lag:].subtract(spread[:-lag].values))) for lag in lags]
     poly = polyfit(log(lags), log(tau), 1)
     return poly[0]*2
+
 
 #checking how long mean revision will take place
 def half_life(spread):
@@ -105,6 +108,7 @@ finding_correlated_pairs(correlation_matrix)
 finding_cointegrated_pairs(correlated_pairs)
 print(cointegrated_pairs)
 """
+
 """
 print(ADF_test("MSFT", "ELTK"))
 plt.plot(OLS("MSFT", "ELTK"))
@@ -117,17 +121,30 @@ def plotting_stocks(pair):
     plt.legend(loc='upper left', frameon=False)
     plt.show()
 
+
+
+def entry_exit_points(pair):
+
+    return
+
 #if you have one stock already
-def finding_existing_pair(ticker, data, reversion_time = 15):
+def finding_existing_pair(ticker, data, reversion_time = 15, corr_threshold = .9):
     potential_pairs = []
     for other_ticker in data:
-        if other_ticker == "Date" or other_ticker == ticker:
+        if (other_ticker == "Date" or other_ticker == ticker):
             pass
         else:
-            results = ADF_test(ticker, other_ticker)
-            if results[0] < results[4]["1%"] and (hurst_analysis(OLS(ticker, other_ticker)) < .5
-                                                and half_life(OLS(ticker, other_ticker)) < reversion_time):
-                    potential_pairs.append(other_ticker)
+            if data[ticker].corr(data[other_ticker]) < corr_threshold:
+                pass
+            else:
+                results = ADF_test(ticker, other_ticker)
+                if results[0] < results[4]["1%"] and (hurst_analysis(OLS(ticker, other_ticker)) < .5
+                                                    and half_life(OLS(ticker, other_ticker)) < reversion_time):
+                        potential_pairs.append(other_ticker)
     return potential_pairs
 
-plotting_stocks(["MSFT", "XIN"])
+
+"""
+print(finding_existing_pair("MSFT", data))
+plotting_stocks(["ADUS", "BHK"])
+"""
