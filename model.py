@@ -16,10 +16,10 @@ data = data.dropna(1)
 data = data[data.columns[0:100]]
 
 
-# 1. Do the necessary regression models to find cointegrating pairs, whether that be ADF, EGranger, or Johansen
+# 1. Do the necessary regression models to find cointegrating pairs, whether that be ADF, EGranger, or Johansen (done)
 # 2. Find pairs with wide spreads, through the calculation of the Hurst exponent and calculating the half-life of
-#    the mean reversion
-# 3. Output certain pairs that are cointergrated/correlated
+#    the mean reversion (done)
+# 3. Output certain pairs that are cointergrated/correlated (done)
 # 4. (Optional) Build a simple GUI that helps visualize the cointegration/spreads
 # 5. (Optional) Make it live?
 
@@ -61,11 +61,12 @@ def finding_correlated_pairs(correlation_matrix, threshold =.9): #threshold arbi
                     correlated_pairs[ticker] = [other_ticker]
 
 
-def finding_cointegrated_pairs(corr_pairs):
+def finding_cointegrated_pairs(corr_pairs, reversion_time=15):
     for ticker in corr_pairs:
         for other_ticker in corr_pairs[ticker]:
             results = ADF_test(ticker, other_ticker)
-            if results[0] < results[4]["1%"]:
+            if results[0] < results[4]["1%"] and (hurst_analysis(OLS(ticker, other_ticker)) < .5
+                                                and half_life(OLS(ticker, other_ticker)) < reversion_time):
                 try:
                     cointegrated_pairs[ticker].extend([other_ticker])
                 except KeyError:
@@ -79,7 +80,7 @@ def hurst_analysis(spread):
     return poly[0]*2
 
 #checking how long mean revision will take place
-def half_life_test(spread):
+def half_life(spread):
     spread_lag = spread.shift(1)
     spread_lag.iloc[0] = spread_lag.iloc[1]
     spread_ret = spread - spread_lag.values
@@ -90,15 +91,15 @@ def half_life_test(spread):
     return -np.log(2) / res.params[0]
 
 
-
-print(half_life_test(OLS("A","ASTE")))
-
-
 """
+print(half_life(OLS("A","ASTE")))
+"""
+
+
 finding_correlated_pairs(correlation_matrix)
 finding_cointegrated_pairs(correlated_pairs)
 print(cointegrated_pairs)
-"""
+
 """
 print(ADF_test("A", "ASTE"))
 plt.plot(OLS("A", "ASTE"))
