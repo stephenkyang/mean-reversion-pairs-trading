@@ -1,9 +1,5 @@
 import numpy as np
 import pandas as pd
-import statsmodels
-import statsmodels.formula.api as smf
-import statsmodels.api as sm
-import statsmodels.tsa as ts
 import yfinance as yf
 
 class yFinanceScraper(object):
@@ -31,7 +27,8 @@ data = data[data["Volume"] > 10000][data["IPO Year"] < 2010][data["Symbol"] != "
 #for storing testing data
 scraper = yFinanceScraper(data)
 for ticker in scraper.df:
-    normalized_ticker_data = (scraper.df[ticker]-scraper.df[ticker].min())/(scraper.df[ticker].max()-scraper.df[ticker].min())
+    normalized_ticker_data = (scraper.df[ticker]-scraper.df[ticker].mean())/(scraper.df[ticker].std())
     scraper.df[ticker] = normalized_ticker_data
+
 
 scraper.df.to_csv("historical-data.csv")
