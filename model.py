@@ -10,10 +10,11 @@ from numpy import polyfit, sqrt, std, subtract, log
 #data cleaning as the cointegration test can't have any NaN values
 
 data = pd.read_csv("historical-data.csv")
-data = data.replace("", np.nan, regex=True)
+data.iloc[0] = data.iloc[1]
 data = data.fillna(method='ffill')
 data = data.dropna(1)
-data = data[data.columns[0:100]]
+
+data = data[data.columns]
 
 
 # 1. Do the necessary regression models to find cointegrating pairs, whether that be ADF, EGranger, or Johansen (done)
@@ -54,11 +55,13 @@ cointegrated_pairs = {}
 def finding_correlated_pairs(correlation_matrix, threshold =.9): #threshold arbitrary, revise if necessary
     for ticker in correlation_matrix:
         for other_ticker, value in correlation_matrix[ticker].items():
-            if value > threshold and value != 1.00:
+            if value > threshold and value != 1.00 and (other_ticker not in correlated_pairs
+                                                                    or ticker not in correlated_pairs[other_ticker]):
                 try:
                     correlated_pairs[ticker].extend([other_ticker])
                 except KeyError:
                     correlated_pairs[ticker] = [other_ticker]
+
 
 
 def finding_cointegrated_pairs(corr_pairs, reversion_time=15):
@@ -71,6 +74,8 @@ def finding_cointegrated_pairs(corr_pairs, reversion_time=15):
                     cointegrated_pairs[ticker].extend([other_ticker])
                 except KeyError:
                     cointegrated_pairs[ticker] = [other_ticker]
+
+
 
 #checking mean reversion (using Hurst exponents)
 def hurst_analysis(spread):
@@ -95,14 +100,14 @@ def half_life(spread):
 print(half_life(OLS("A","ASTE")))
 """
 
-
+"""
 finding_correlated_pairs(correlation_matrix)
 finding_cointegrated_pairs(correlated_pairs)
 print(cointegrated_pairs)
-
 """
-print(ADF_test("A", "ASTE"))
-plt.plot(OLS("A", "ASTE"))
+"""
+print(ADF_test("MSFT", "ELTK"))
+plt.plot(OLS("MSFT", "ELTK"))
 plt.show()
 """
 
@@ -111,3 +116,18 @@ def plotting_stocks(pair):
     plt.plot(data["Date"], data[pair[1]], label = pair[1])
     plt.legend(loc='upper left', frameon=False)
     plt.show()
+
+#if you have one stock already
+def finding_existing_pair(ticker, data, reversion_time = 15):
+    potential_pairs = []
+    for other_ticker in data:
+        if other_ticker == "Date" or other_ticker == ticker:
+            pass
+        else:
+            results = ADF_test(ticker, other_ticker)
+            if results[0] < results[4]["1%"] and (hurst_analysis(OLS(ticker, other_ticker)) < .5
+                                                and half_life(OLS(ticker, other_ticker)) < reversion_time):
+                    potential_pairs.append(other_ticker)
+    return potential_pairs
+
+plotting_stocks(["MSFT", "XIN"])
