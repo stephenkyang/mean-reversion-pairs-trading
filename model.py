@@ -7,9 +7,10 @@ import matplotlib.pyplot as plt
 import statsmodels.tsa.vector_ar.vecm
 from numpy import polyfit, sqrt, std, subtract, log
 from scraper import yFinanceScraper
+from dict_of_pairs import pairs
 
 num_data = pd.read_csv("historical-data.csv")
-
+saved_pairs = pairs
 #data cleaning as the cointegration test can't have any NaN values
 data = pd.read_csv("normalized-historical-data.csv")
 data.iloc[0] = data.iloc[1]
@@ -20,8 +21,7 @@ data = data[data.columns[:]]
 print(data.isnull().values.any())
 
 # 1. Do the necessary regression models to find cointegrating pairs, whether that be ADF, EGranger, or Johansen (done)
-# 2. Find pairs with wide spreads, through the calculation of the Hurst exponent and calculating the half-life of
-#    the mean reversion (done)
+# 2. Find pairs with wide spreads, through the calculation of the Hurst exponent and calculating the half-life of the mean reversion (done)
 # 3. Output certain pairs that are cointergrated/correlated (done)
 # 4. Add the ability to set entry and exit points (done)
 
@@ -89,7 +89,7 @@ def finding_cointegrated_pairs(corr_pairs, reversion_time=30):
                     cointegrated_pairs[ticker] = [other_ticker]
 
 
-def finding_tradable_pairs(coint_pairs, dist=2):
+def finding_tradable_pairs(coint_pairs, dist=2.5):
     for ticker in coint_pairs:
         for other_ticker in coint_pairs[ticker]:
             pair = [ticker, other_ticker]
@@ -136,15 +136,14 @@ print(half_life(OLS("A","ASTE")))
 """
 
 
-finding_correlated_pairs(correlation_matrix)
-finding_cointegrated_pairs(correlated_pairs)
-finding_tradable_pairs(cointegrated_pairs)
+
+finding_tradable_pairs(saved_pairs)
 print(tradable_pairs)
 
 def plotting_stocks(pair): #with bollinger bands
     plt.plot(bollinger_bands([pair[0], pair[1]])[0], label = "Upper Bollinger Band", color= "black")
-    plt.plot(bollinger_bands([pair[0], pair[1]])[1], label = "Combined Z-score Average")
-    plt.plot(bollinger_bands([pair[0], pair[1]])[2], label = "Upper Bollinger Band", color = "black")
+    plt.plot(bollinger_bands([pair[0], pair[1]])[1], label = "Combined Z-score Average", color = "black")
+    plt.plot(bollinger_bands([pair[0], pair[1]])[2], label = "Lower Bollinger Band", color = "black")
     plt.plot(data[pair[0]], label = pair[0])
     plt.plot(data[pair[1]], label = pair[1])
     plt.legend(loc='upper left', frameon=False)
@@ -155,7 +154,6 @@ def plotting_stocks(pair): #with bollinger bands
 print(finding_existing_pair("MSFT", data))
 """
 
-
 """
 print(ADF_test("MSFT", "ELTK"))
 plt.plot(OLS("MSFT", "ELTK"))
@@ -165,19 +163,21 @@ plt.show()
 def entry_exit_points(pair):
     bolli_bands = bollinger_bands(pair)
     middle_bolli_last = bolli_bands[1].iloc[-1] #also known as the moving average
-    short_stock, long_stock = (lambda pair: (pair[0], pair[1]) if pair[0] < pair[1] else (pair[1], pair[0])) (pair)
-    print(short_stock + " Current Price: ",  num_data[short_stock].iloc[-1])
-    print(long_stock + " Current Price: ", num_data[long_stock].iloc[-1])
-    print(short_stock + " Stop Loss if stock goes above",  num_data[short_stock].iloc[-1] + num_data[short_stock].std() * 1.5)
-    print(long_stock + " Stop Loss if stock goes below",  num_data[short_stock].iloc[-1] - num_data[short_stock].std() * 1.5)
-    print(short_stock + " stop long when stock drops to",  (middle_bolli_last * num_data[short_stock].std()) - num_data[short_stock].mean())
-    print(long_stock + " stop short when stock reaches", (middle_bolli_last * num_data[long_stock].std()) - num_data[long_stock].mean() )
+    ticker0_rec = data[pair[0]].iloc[-1]
+    ticker1_rec = data[pair[1]].iloc[-1]
+    short_stock, long_stock = (lambda pair: (pair[0], pair[1]) if ticker0_rec > ticker1_rec else (pair[1], pair[0])) (pair)
+    print(short_stock + " Current Price: ",  round(num_data[short_stock].iloc[-1], 2))
+    print(short_stock + " Stop Loss if stock goes above",  round((num_data[short_stock].iloc[-1] + num_data[short_stock].std() * 1.5), 2))
+    print(short_stock + " Stop shorting when stock drops to",  round((middle_bolli_last * num_data[short_stock].std()) + num_data[short_stock].mean(),2))
+    print(long_stock + " Current Price: ", round(num_data[long_stock].iloc[-1], 2))
+    print(long_stock + " Stop Loss if stock goes below",  round((num_data[long_stock].iloc[-1] - num_data[short_stock].std() * 1.5), 2))
+    print(long_stock + " Sell when stock reaches", round((middle_bolli_last * num_data[long_stock].std()) + num_data[long_stock].mean(), 2))
     plotting_stocks(pair)
 
-#entry_exit_points(["ASTE", "A"])
+
 
 #if you have one stock already
-def finding_existing_pair(ticker, data, reversion_time = 15, corr_threshold = .9):
+def finding_existing_pair(ticker, data, reversion_time = 30, corr_threshold = .9, dist = 2):
     potential_pairs = []
     for other_ticker in data:
         if (other_ticker == "Date" or other_ticker == ticker):
@@ -189,5 +189,21 @@ def finding_existing_pair(ticker, data, reversion_time = 15, corr_threshold = .9
                 results = ADF_test(ticker, other_ticker)
                 if results[0] < results[4]["1%"] and (hurst_analysis(OLS(ticker, other_ticker)) < .5
                                                     and half_life(OLS(ticker, other_ticker)) < reversion_time):
+                    pair = [ticker, other_ticker]
+                    bolli_bands = bollinger_bands(pair)
+                    ticker_last = data[ticker].iloc[-1]
+                    other_ticker_last = data[other_ticker].iloc[-1]
+                    upper_bolli_last = bolli_bands[0].iloc[-1]
+                    middle_bolli_last = bolli_bands[1].iloc[-1]
+                    lower_bolli_last = bolli_bands[2].iloc[-1]
+
+                    if (abs(ticker_last - upper_bolli_last) < dist and other_ticker_last < middle_bolli_last
+                        or abs(ticker_last - upper_bolli_last) < dist and other_ticker_last < middle_bolli_last
+                        or abs(ticker_last - lower_bolli_last) < dist and other_ticker_last > middle_bolli_last
+                        or abs(ticker_last - lower_bolli_last) < dist and other_ticker_last > middle_bolli_last):
+
                         potential_pairs.append(other_ticker)
     return potential_pairs
+
+
+entry_exit_points(["MVO", "VSAT"])
