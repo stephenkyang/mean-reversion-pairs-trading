@@ -6,11 +6,11 @@ class yFinanceScraper(object):
     namelist = []
     first = True
     df = None
-    period = "20"
+    period = "200"
     def __init__(self,names):
         self.names = names
         self.historicallist= []
-        for name in self.names[0:100]:
+        for name in self.names:
             self.namelist.append(name)
             ticker = yf.Ticker(name)
             data = ticker.history(period=yFinanceScraper.period+"d").loc[: , ["Close"]]
@@ -21,16 +21,17 @@ class yFinanceScraper(object):
             else:
                 self.df = self.df.join(data)
 
-if __name__ == "__scraper__":
+
+if __name__ == "__main__":
     data = pd.read_csv("/Users/stephen/Desktop/Pairs Trading Project/ticker-names-on-NASDAQ-NYSE.csv")
     data = data[data["Volume"] > 10000][data["IPO Year"] < 2010][data["Symbol"] != "AMHC"]["Symbol"]
 
     #for storing testing data
     scraper = yFinanceScraper(data)
-
+    scraper.df.to_csv("historical-data.csv")
     #normalizing data
     for ticker in scraper.df:
         normalized_ticker_data = (scraper.df[ticker]-scraper.df[ticker].mean())/(scraper.df[ticker].std())
         scraper.df[ticker] = normalized_ticker_data
 
-    scraper.df.to_csv("historical-data.csv")
+    scraper.df.to_csv("normalized-historical-data.csv")
