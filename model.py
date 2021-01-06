@@ -25,7 +25,7 @@ print(data.isnull().values.any())
 # 3. Output certain pairs that are cointergrated/correlated (done)
 # 4. Add the ability to set entry and exit points (done)
 
-#correlation and cointegrating section (Currently using EGranger)
+#correlation and cointegrating section (Currently using ADF)
 def correlation(data):
     corr_mat = data.corr()
     return corr_mat
@@ -131,14 +131,6 @@ def half_life(spread):
     return -np.log(2) / res.params[0]
 
 
-"""
-print(half_life(OLS("A","ASTE")))
-"""
-
-
-
-finding_tradable_pairs(saved_pairs)
-print(tradable_pairs)
 
 def plotting_stocks(pair): #with bollinger bands
     plt.plot(bollinger_bands([pair[0], pair[1]])[0], label = "Upper Bollinger Band", color= "black")
@@ -149,16 +141,6 @@ def plotting_stocks(pair): #with bollinger bands
     plt.legend(loc='upper left', frameon=False)
     plt.show()
 
-
-"""
-print(finding_existing_pair("MSFT", data))
-"""
-
-"""
-print(ADF_test("MSFT", "ELTK"))
-plt.plot(OLS("MSFT", "ELTK"))
-plt.show()
-"""
 
 def entry_exit_points(pair):
     bolli_bands = bollinger_bands(pair)
@@ -173,7 +155,6 @@ def entry_exit_points(pair):
     print(long_stock + " Stop Loss if stock goes below",  round((num_data[long_stock].iloc[-1] - num_data[short_stock].std() * 1.5), 2))
     print(long_stock + " Sell when stock reaches", round((middle_bolli_last * num_data[long_stock].std()) + num_data[long_stock].mean(), 2))
     plotting_stocks(pair)
-
 
 
 #if you have one stock already
@@ -205,5 +186,23 @@ def finding_existing_pair(ticker, data, reversion_time = 30, corr_threshold = .9
                         potential_pairs.append(other_ticker)
     return potential_pairs
 
+#tests
+
+"""
+print(half_life(OLS("A","ASTE")))
+"""
+
+finding_tradable_pairs(saved_pairs)
+print(tradable_pairs)
+
+"""
+print(finding_existing_pair("MSFT", data))
+"""
+
+"""
+print(ADF_test("MSFT", "ELTK"))
+plt.plot(OLS("MSFT", "ELTK"))
+plt.show()
+"""
 
 entry_exit_points(["MVO", "VSAT"])
