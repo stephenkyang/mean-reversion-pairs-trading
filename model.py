@@ -17,7 +17,7 @@ data.iloc[0] = data.iloc[1]
 data = data.fillna(method='ffill')
 data = data.dropna(1)
 
-data = data[data.columns[:]]
+
 print(data.isnull().values.any())
 
 # 1. Do the necessary regression models to find cointegrating pairs, whether that be ADF, EGranger, or Johansen (done)
@@ -70,26 +70,27 @@ def finding_correlated_pairs(correlation_matrix, threshold =.8): #threshold arbi
         for other_ticker, value in correlation_matrix[ticker].items():
             if value > threshold and value != 1.00 and (other_ticker not in correlated_pairs
                                                                     or ticker not in correlated_pairs[other_ticker]):
-                try:
+                if ticker in correlated_pairs:
                     correlated_pairs[ticker].extend([other_ticker])
-                except KeyError:
+                else:
                     correlated_pairs[ticker] = [other_ticker]
 
 
 
-def finding_cointegrated_pairs(corr_pairs, reversion_time=30):
+def finding_cointegrated_pairs(corr_pairs, reversion_time=60):
     for ticker in corr_pairs:
+        print(ticker)
         for other_ticker in corr_pairs[ticker]:
             results = ADF_test(ticker, other_ticker)
-            if results[0] < results[4]["1%"] and (hurst_analysis(OLS(ticker, other_ticker)) < .5
-                                                and half_life(OLS(ticker, other_ticker)) < reversion_time):
-                try:
+            spread = OLS(ticker, other_ticker)
+            if results[0] < results[4]["1%"] and (hurst_analysis(spread) < .5
+                                                and half_life(spread) < reversion_time):
+                if ticker in cointegrated_pairs:
                     cointegrated_pairs[ticker].extend([other_ticker])
-                except KeyError:
+                else:
                     cointegrated_pairs[ticker] = [other_ticker]
 
-
-def finding_tradable_pairs(coint_pairs, dist=2.5):
+def finding_tradable_pairs(coint_pairs, dist=5):
     for ticker in coint_pairs:
         for other_ticker in coint_pairs[ticker]:
             pair = [ticker, other_ticker]
@@ -100,15 +101,16 @@ def finding_tradable_pairs(coint_pairs, dist=2.5):
             middle_bolli_last = bolli_bands[1].iloc[-1]
             lower_bolli_last = bolli_bands[2].iloc[-1]
 
-            if (abs(ticker_last - upper_bolli_last) < dist and other_ticker_last < middle_bolli_last
-                or abs(ticker_last - upper_bolli_last) < dist and other_ticker_last < middle_bolli_last
-                or abs(ticker_last - lower_bolli_last) < dist and other_ticker_last > middle_bolli_last
-                or abs(ticker_last - lower_bolli_last) < dist and other_ticker_last > middle_bolli_last):
+            if (abs(ticker_last - upper_bolli_last) < dist and other_ticker_last < middle_bolli_last and ticker_last > middle_bolli_last
+                or abs(other_ticker_last - upper_bolli_last) < dist and ticker_last < middle_bolli_last and other_ticker_last > middle_bolli_last
+                or abs(ticker_last - lower_bolli_last) < dist and other_ticker_last > middle_bolli_last and ticker_last < middle_bolli_last
+                or abs(other_ticker_last - lower_bolli_last) < dist and ticker_last > middle_bolli_last and other_ticker_last < middle_bolli_last):
 
-                try:
+                if ticker in tradable_pairs:
                     tradable_pairs[ticker].extend([other_ticker])
-                except KeyError:
+                else:
                     tradable_pairs[ticker] = [other_ticker]
+    return tradable_pairs
 
 
 #checking mean reversion (using Hurst exponents)
@@ -192,8 +194,7 @@ def finding_existing_pair(ticker, data, reversion_time = 30, corr_threshold = .9
 print(half_life(OLS("A","ASTE")))
 """
 
-finding_tradable_pairs(saved_pairs)
-print(tradable_pairs)
+
 
 """
 print(finding_existing_pair("MSFT", data))
@@ -205,4 +206,5 @@ plt.plot(OLS("MSFT", "ELTK"))
 plt.show()
 """
 
-entry_exit_points(["MVO", "VSAT"])
+"""entry_exit_points(["MVO", "VSAT"])
+"""
