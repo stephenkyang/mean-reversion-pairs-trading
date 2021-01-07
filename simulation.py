@@ -118,8 +118,10 @@ class Simulation(object):
         ticker0_rec = data[pair[0]].iloc[self.day]
         ticker1_rec = data[pair[1]].iloc[self.day]
         short_stock, long_stock = pair[0], pair[1]
-        short_stock_exit = [round((num_data[short_stock].iloc[self.day] + num_data[short_stock].iloc[self.day-200:self.day].std() * 1.5), 2), round((middle_bolli_last * num_data[short_stock].iloc[self.day-200:self.day].std()) + num_data[short_stock].iloc[self.day-200:self.day].mean(),2)]
-        long_stock_exit = [round((num_data[long_stock].iloc[self.day] - num_data[short_stock].iloc[self.day-200:self.day].std() * 1.5), 2), round((middle_bolli_last * num_data[long_stock].iloc[self.day-200:self.day].std()) + num_data[long_stock].iloc[self.day-200:self.day].mean(), 2)]
+        short_stock_exit = [round((num_data[short_stock].iloc[self.day] + num_data[short_stock].iloc[self.day-200:self.day].std() * 1.5), 2),
+                            round((middle_bolli_last * num_data[short_stock].iloc[self.day-200:self.day].std()) + num_data[short_stock].iloc[self.day-200:self.day].mean(),2)]
+        long_stock_exit = [round((num_data[long_stock].iloc[self.day] - num_data[short_stock].iloc[self.day-200:self.day].std() * 1.5), 2),
+                            round((middle_bolli_last * num_data[long_stock].iloc[self.day-200:self.day].std()) + num_data[long_stock].iloc[self.day-200:self.day].mean(), 2)]
 
         return [short_stock_exit, long_stock_exit]
 
