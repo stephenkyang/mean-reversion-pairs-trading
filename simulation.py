@@ -3,7 +3,7 @@ import pandas as pd
 import statsmodels
 from scraper import yFinanceScraper
 from model import hurst_analysis, OLS
-from dict_of_pairs import pairs, tradable_pairs
+from dict_of_pairs import pairs, saved_tradable_pairs
 import statsmodels.api as sm
 from statsmodels.tsa.stattools import adfuller as adf
 
@@ -23,7 +23,7 @@ class Simulation(object):
     def __init__(self, days, money, reversion_time=60):
         self.day = 200
         self.days = int(days)
-        self.tradable_pairs = tradable_pairs
+        self.tradable_pairs = saved_tradable_pairs
         self.money = money
         self.ori_amount = str(money)
         self.holding_pair = False
@@ -161,4 +161,4 @@ class Simulation(object):
 
 
 
-Simulation(400, 10000)
+Simulation(1000, 10000)
