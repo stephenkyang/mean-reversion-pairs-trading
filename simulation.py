@@ -3,7 +3,9 @@ import pandas as pd
 import statsmodels
 from scraper import yFinanceScraper
 from model import hurst_analysis, OLS
-from dict_of_pairs import pairs
+from dict_of_pairs import pairs, tradable_pairs
+import statsmodels.api as sm
+from statsmodels.tsa.stattools import adfuller as adf
 
 num_data = pd.read_csv("historical-data.csv")
 saved_pairs = pairs
@@ -21,7 +23,7 @@ class Simulation(object):
     def __init__(self, days, money, reversion_time=60):
         self.day = 200
         self.days = int(days)
-        self.tradable_pairs = self.finding_tradable_pairs(saved_pairs, self.day)
+        self.tradable_pairs = tradable_pairs
         self.money = money
         self.ori_amount = str(money)
         self.holding_pair = False
@@ -31,22 +33,22 @@ class Simulation(object):
                 if num_data[best_pair[0]].iloc[self.day] > short_info[0]:
                     self.money += self.sell(best_pair, trading_info[0], trading_info[1], trading_info[2], trading_info[3])
                     print("$" + str(round(self.money,2))  + " started with $" + self.ori_amount)
-                    print("Short Stop Loss", short_info[0])
+                    print("Short Stop Loss", round(short_info[0],2))
                     self.holding_pair = False
                 elif num_data[best_pair[0]].iloc[self.day] < short_info[1]:
                     self.money += self.sell(best_pair, trading_info[0], trading_info[1], trading_info[2], trading_info[3])
                     print("$" + str(round(self.money,2))  + " started with $" + self.ori_amount)
-                    print("Short Mean Reverted", short_info[1])
+                    print("Short Mean Reverted", round(short_info[1],2))
                     self.holding_pair = False
                 elif num_data[best_pair[1]].iloc[self.day] < long_info[0]:
                     self.money += self.sell(best_pair, trading_info[0], trading_info[1], trading_info[2], trading_info[3])
                     print("$" + str(round(self.money,2))  + " started with $" + self.ori_amount)
-                    print("Long Stop Loss", long_info[0])
+                    print("Long Stop Loss", round(long_info[0],2))
                     self.holding_pair = False
                 elif num_data[best_pair[1]].iloc[self.day] > long_info[1]:
                     self.money += self.sell(best_pair, trading_info[0], trading_info[1], trading_info[2], trading_info[3])
                     print("$" + str(round(self.money,2))  + " started with $" + self.ori_amount)
-                    print("Long Mean Reverted",  long_info[1])
+                    print("Long Mean Reverted",  round(long_info[1],2))
                     self.holding_pair = False
                 elif reversion_time == 0:
                     self.money += self.sell(best_pair, trading_info[0], trading_info[1], trading_info[2], trading_info[3])
@@ -55,17 +57,20 @@ class Simulation(object):
                     self.holding_pair = False
             else:
                 best_pair = self.find_best_pair(self.tradable_pairs)
-                short_info = self.entry_exit_points(best_pair)[0]
-                long_info = self.entry_exit_points(best_pair)[1]
-                trading_info = self.buy(best_pair, self.money)
-                self.holding_pair = True
+                if best_pair == None or best_pair == []:
+                    print("No Pairs on " + str(self.day))
+                else:
+                    short_info = self.entry_exit_points(best_pair)[0]
+                    long_info = self.entry_exit_points(best_pair)[1]
+                    trading_info = self.buy(best_pair, self.money)
+                    self.holding_pair = True
 
-            self.day+= 1
+            self.day += 1
             reversion_time -= 1
             days -= 1
-            print(self.return_money())
+        print(self.return_money())
 
-    def finding_tradable_pairs(self, coint_pairs, dist=5):
+    def finding_tradable_pairs(self, coint_pairs, dist=10):
         tradable_pairs = {}
         for ticker in coint_pairs:
             for other_ticker in coint_pairs[ticker]:
@@ -92,6 +97,7 @@ class Simulation(object):
 
 
     def bollinger_bands(self, pair):
+
         combined_z_scores = data[pair[0]].iloc[self.day-200:self.day] + data[pair[1]].iloc[self.day-200:self.day]
         upper_bolli_band = combined_z_scores + combined_z_scores.std() * 2
         lower_bolli_band = combined_z_scores - combined_z_scores.std() * 2
@@ -99,15 +105,15 @@ class Simulation(object):
 
     def find_best_pair(self, pairs):
         best_pair = []
-        minimum_hurst = .5
+        minimum_ADF = 0
         for ticker in pairs:
             for other_ticker in pairs[ticker]:
                 pair = [ticker, other_ticker]
                 pair = (lambda pair: [ticker, other_ticker] if data[pair[0]].iloc[self.day] > data[pair[1]].iloc[self.day] else [other_ticker, ticker]) (pair)
-                if hurst_analysis(OLS(pair[0], pair[1])) < minimum_hurst and (self.entry_exit_points(pair)[0][0] < data[pair[0]].iloc[self.day] > self.entry_exit_points(pair)[0][1]
-                                                                          and self.entry_exit_points(pair)[1][0] < data[pair[1]].iloc[self.day] > self.entry_exit_points(pair)[1][1]):
+                if self.ADF_test(ticker, other_ticker)[4]["1%"] < minimum_ADF and (self.entry_exit_points(pair)[0][0] > num_data[pair[0]].iloc[self.day] > self.entry_exit_points(pair)[0][1]
+                                                                          and self.entry_exit_points(pair)[1][0] < num_data[pair[1]].iloc[self.day] < self.entry_exit_points(pair)[1][1]):
 
-                    minimum_hurst = hurst_analysis(OLS(pair[0], pair[1]))
+                    minimum_ADF = self.ADF_test(ticker, other_ticker)[4]["1%"]
                     best_pair = pair
 
         return best_pair
@@ -137,10 +143,21 @@ class Simulation(object):
         short_last = num_data[pair[0]].iloc[self.day]
         long_last = num_data[pair[1]].iloc[self.day]
         print("Stopped shorting " + pair[0] + " at " + str(short_last) + " Sold " + pair[1] + " at " + str(long_last))
-        return (short_orginal - short_last) * short_amount + (long_original - long_last) * long_amount
+        return (short_orginal - short_last) * short_amount + (long_last - long_original) * long_amount
+
+    def OLS(self, ticker1, ticker2):
+        spread = sm.OLS(data[ticker1].iloc[self.day-200:self.day],data[ticker2].iloc[self.day-200:self.day])
+        spread = spread.fit()
+        return data[ticker1] + (data[ticker2] * -spread.params[0])
+
+    def ADF(self,spread):
+        return statsmodels.tsa.stattools.adfuller(spread)
+
+    def ADF_test(self,ticker1, ticker2):
+        return self.ADF(self.OLS(ticker1, ticker2))
 
     def return_money(self):
-        return self.money
+        return str(self.money)
 
 
 

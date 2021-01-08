@@ -16,6 +16,7 @@ data = pd.read_csv("normalized-historical-data.csv")
 data.iloc[0] = data.iloc[1]
 data = data.fillna(method='ffill')
 data = data.dropna(1)
+data = data.iloc[:100]
 
 
 print(data.isnull().values.any())
@@ -65,7 +66,7 @@ cointegrated_pairs = {}
 tradable_pairs = {}
 
 #using correlation to eliminate clearly non-cointegrated pairs for efficency
-def finding_correlated_pairs(correlation_matrix, threshold =.8): #threshold arbitrary, revise if necessary
+def finding_correlated_pairs(correlation_matrix, threshold =.55): #threshold arbitrary, revise if necessary
     for ticker in correlation_matrix:
         for other_ticker, value in correlation_matrix[ticker].items():
             if value > threshold and value != 1.00 and (other_ticker not in correlated_pairs
@@ -77,7 +78,7 @@ def finding_correlated_pairs(correlation_matrix, threshold =.8): #threshold arbi
 
 
 
-def finding_cointegrated_pairs(corr_pairs, reversion_time=60):
+def finding_cointegrated_pairs(corr_pairs, reversion_time=120):
     for ticker in corr_pairs:
         print(ticker)
         for other_ticker in corr_pairs[ticker]:
@@ -115,7 +116,7 @@ def finding_tradable_pairs(coint_pairs, dist=5):
 
 #checking mean reversion (using Hurst exponents)
 def hurst_analysis(spread):
-    lags = range(2, (lambda: 100 if int(yFinanceScraper.period) > 100 else int(yFinanceScraper.period) - 1)())
+    lags = range(2, 100)
     tau = [sqrt(std(spread[lag:].subtract(spread[:-lag].values))) for lag in lags]
     poly = polyfit(log(lags), log(tau), 1)
     return poly[0]*2
@@ -194,7 +195,10 @@ def finding_existing_pair(ticker, data, reversion_time = 30, corr_threshold = .9
 print(half_life(OLS("A","ASTE")))
 """
 
-
+"""
+finding_tradable_pairs(saved_pairs)
+print(tradable_pairs)
+"""
 
 """
 print(finding_existing_pair("MSFT", data))
@@ -208,3 +212,5 @@ plt.show()
 
 """entry_exit_points(["MVO", "VSAT"])
 """
+
+"""plotting_stocks(["ACAD", "CYTK"])"""
