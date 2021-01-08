@@ -151,12 +151,13 @@ def entry_exit_points(pair):
     ticker0_rec = data[pair[0]].iloc[-1]
     ticker1_rec = data[pair[1]].iloc[-1]
     short_stock, long_stock = (lambda pair: (pair[0], pair[1]) if ticker0_rec > ticker1_rec else (pair[1], pair[0])) (pair)
-    short_stock_exit = [round((num_data[short_stock].iloc[-1] + num_data[short_stock].iloc[-1].std() * 1.5), 2),
-                        round((middle_bolli_last * num_data[short_stock].iloc[-1].std()) + num_data[short_stock].iloc[-1].mean(),2)]
-    long_stock_exit = [round((num_data[long_stock].iloc[-1] - num_data[short_stock].iloc[-1].std() * 1.5), 2),
-                        round((middle_bolli_last * num_data[long_stock].iloc[-1].std()) + num_data[long_stock].iloc[-1].mean(), 2)]
+    short_stock_exit = [round((num_data[short_stock].iloc[-1] + num_data[short_stock].std() * 1.5), 2),
+                        round((middle_bolli_last * num_data[short_stock].std()) + num_data[short_stock].mean(),2)]
+    long_stock_exit = [round((num_data[long_stock].iloc[-1] - num_data[short_stock].std() * 1.5), 2),
+                        round((middle_bolli_last * num_data[long_stock].std()) + num_data[long_stock].mean(), 2)]
 
     return [short_stock_exit, long_stock_exit]
+
 
 #if you have one stock already
 def finding_existing_pair(ticker, data, reversion_time = 30, corr_threshold = .9, dist = 2):
@@ -195,11 +196,13 @@ def find_best_pair(pairs):
             pair = [ticker, other_ticker]
             short_stock, long_stock = (lambda pair: [ticker, other_ticker] if data[pair[0]].iloc[-1] > data[pair[1]].iloc[-1] else [other_ticker, ticker]) (pair)
             pair = [short_stock, long_stock]
+            middle_bolli_last = bollinger_bands(pair)[1].iloc[-1]
             if ADF_test(short_stock, long_stock)[4]["1%"] < minimum_ADF and (entry_exit_points(pair)[0][0] > num_data[pair[0]].iloc[-1] > entry_exit_points(pair)[0][1]
                                                                       and entry_exit_points(pair)[1][0] < num_data[pair[1]].iloc[-1] < entry_exit_points(pair)[1][1]):
 
                 minimum_ADF = ADF_test(short_stock, long_stock)[4]["1%"]
                 best_pair = pair
+
 
     print(best_pair)
     print(best_pair[0] + " Current Price: ",  round(num_data[best_pair[0]].iloc[-1], 2))
@@ -209,11 +212,13 @@ def find_best_pair(pairs):
     print(best_pair[1] + " Stop Loss if stock goes below",  round((num_data[best_pair[1]].iloc[-1] - num_data[best_pair[1]].std() * 1.5), 2))
     print(best_pair[1] + " Sell when stock reaches", round((middle_bolli_last * num_data[best_pair[1]].std()) + num_data[best_pair[1]].mean(), 2))
 
-"""
-print(tradable_pairs)
-print(find_best_pair(saved_tradable_pairs))
-"""
+find_best_pair(saved_tradable_pairs)
+
+
 #tests
+
+#print(tradable_pairs)
+#print(find_best_pair(saved_tradable_pairs))
 
 """
 print(half_life(OLS("A","ASTE")))
