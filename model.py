@@ -53,7 +53,7 @@ def ADF_test(ticker1, ticker2):
 #top band and the other is below the moving day avg and close to the bottom band
 
 def bollinger_bands(pair):
-    combined_z_scores = data[pair[0]] + data[pair[1]]
+    combined_z_scores = (data[pair[0]] + data[pair[1]]) / 2
     upper_bolli_band = combined_z_scores + combined_z_scores.std() * 2
     lower_bolli_band = combined_z_scores - combined_z_scores.std() * 2
     return [upper_bolli_band, combined_z_scores, lower_bolli_band]
@@ -151,9 +151,9 @@ def entry_exit_points(pair):
     ticker0_rec = data[pair[0]].iloc[-1]
     ticker1_rec = data[pair[1]].iloc[-1]
     short_stock, long_stock = (lambda pair: (pair[0], pair[1]) if ticker0_rec > ticker1_rec else (pair[1], pair[0])) (pair)
-    short_stock_exit = [round((num_data[short_stock].iloc[-1] + num_data[short_stock].std() * 1.5), 2),
+    short_stock_exit = [round((num_data[short_stock].iloc[-1] + num_data[short_stock].std()), 2),
                         round((middle_bolli_last * num_data[short_stock].std()) + num_data[short_stock].mean(),2)]
-    long_stock_exit = [round((num_data[long_stock].iloc[-1] - num_data[short_stock].std() * 1.5), 2),
+    long_stock_exit = [round((num_data[long_stock].iloc[-1] - num_data[long_stock].std() ), 2),
                         round((middle_bolli_last * num_data[long_stock].std()) + num_data[long_stock].mean(), 2)]
 
     return [short_stock_exit, long_stock_exit]
@@ -206,40 +206,12 @@ def find_best_pair(pairs):
 
     print(best_pair)
     print(best_pair[0] + " Current Price: ",  round(num_data[best_pair[0]].iloc[-1], 2))
-    print(best_pair[0] + " Stop Loss if stock goes above",  round((num_data[best_pair[0]].iloc[-1] + num_data[best_pair[0]].std() * 1.5), 2))
+    print(best_pair[0] + " Stop Loss if stock goes above",  round((num_data[best_pair[0]].iloc[-1] + num_data[best_pair[0]].std() ), 2))
     print(best_pair[0] + " Stop shorting when stock drops to",  round((middle_bolli_last * num_data[best_pair[0]].std()) + num_data[best_pair[0]].mean(),2))
     print(best_pair[1] + " Current Price: ", round(num_data[best_pair[1]].iloc[-1], 2))
-    print(best_pair[1] + " Stop Loss if stock goes below",  round((num_data[best_pair[1]].iloc[-1] - num_data[best_pair[1]].std() * 1.5), 2))
+    print(best_pair[1] + " Stop Loss if stock goes below",  round((num_data[best_pair[1]].iloc[-1] - num_data[best_pair[1]].std() ), 2))
     print(best_pair[1] + " Sell when stock reaches", round((middle_bolli_last * num_data[best_pair[1]].std()) + num_data[best_pair[1]].mean(), 2))
-
-find_best_pair(saved_tradable_pairs)
-
-
-#tests
-
-#print(tradable_pairs)
-#print(find_best_pair(saved_tradable_pairs))
-
 """
-print(half_life(OLS("A","ASTE")))
+find_best_pair(finding_tradable_pairs(saved_tradable_pairs))
+plotting_stocks(["INFN", "GILD"])
 """
-
-"""
-finding_tradable_pairs(saved_pairs)
-print(tradable_pairs)
-"""
-
-"""
-print(finding_existing_pair("MSFT", data))
-"""
-
-"""
-print(ADF_test("MSFT", "ELTK"))
-plt.plot(OLS("MSFT", "ELTK"))
-plt.show()
-"""
-
-"""entry_exit_points(["MVO", "VSAT"])
-"""
-
-"""plotting_stocks(["ACAD", "CYTK"])"""

@@ -14,47 +14,82 @@ data = pd.read_csv("normalized-historical-data.csv")
 data.iloc[0] = data.iloc[1]
 data = data.fillna(method='ffill')
 data = data.dropna(1)
+data = data
 
-
-days = yFinanceScraper.period
+days = 500
 
 class Simulation(object):
-
+    elim_pairs = pairs
     def __init__(self, days, money, reversion_time=60):
         self.day = 200
         self.days = int(days)
         self.tradable_pairs = saved_tradable_pairs
         self.money = money
         self.ori_amount = str(money)
+        self.eliminated_pairs = {}
         self.holding_pair = False
         while days > 200:
 
             if self.holding_pair == True:
                 if num_data[best_pair[0]].iloc[self.day] > short_info[0]:
                     self.money += self.sell(best_pair, trading_info[0], trading_info[1], trading_info[2], trading_info[3])
-                    print("$" + str(round(self.money,2))  + " started with $" + self.ori_amount)
-                    print("Short Stop Loss", round(short_info[0],2))
+                    print("$" + str(round(self.money,2))  + " started with $" + self.ori_amount + ". " + str(self.day-200) + " passed")
+                    print("Short Stop Loss", round(short_info[1],2))
+                    if best_pair[0] in self.tradable_pairs and best_pair[1] in self.tradable_pairs[best_pair[0]]:
+                        self.tradable_pairs[best_pair[0]].remove(best_pair[1])
+                    else:
+                        self.tradable_pairs[best_pair[1]].remove(best_pair[0])
+                    self.eliminated_pairs[best_pair[0]] = [best_pair[1], 100]
                     self.holding_pair = False
+                    reversion_time = 60
+
                 elif num_data[best_pair[0]].iloc[self.day] < short_info[1]:
                     self.money += self.sell(best_pair, trading_info[0], trading_info[1], trading_info[2], trading_info[3])
-                    print("$" + str(round(self.money,2))  + " started with $" + self.ori_amount)
+                    print("$" + str(round(self.money,2))  + " started with $" + self.ori_amount + ". " + str(self.day-200) + " passed")
                     print("Short Mean Reverted", round(short_info[1],2))
+                    if best_pair[0] in self.tradable_pairs and best_pair[1] in self.tradable_pairs[best_pair[0]]:
+                        self.tradable_pairs[best_pair[0]].remove(best_pair[1])
+                    else:
+                        self.tradable_pairs[best_pair[1]].remove(best_pair[0])
+                    self.eliminated_pairs[best_pair[0]] = [best_pair[1], 100]
                     self.holding_pair = False
+                    reversion_time = 60
+
                 elif num_data[best_pair[1]].iloc[self.day] < long_info[0]:
                     self.money += self.sell(best_pair, trading_info[0], trading_info[1], trading_info[2], trading_info[3])
-                    print("$" + str(round(self.money,2))  + " started with $" + self.ori_amount)
+                    print("$" + str(round(self.money,2))  + " started with $" + self.ori_amount + ". " + str(self.day-200) + " passed")
                     print("Long Stop Loss", round(long_info[0],2))
+                    if best_pair[0] in self.tradable_pairs and best_pair[1] in self.tradable_pairs[best_pair[0]]:
+                        self.tradable_pairs[best_pair[0]].remove(best_pair[1])
+                    else:
+                        self.tradable_pairs[best_pair[1]].remove(best_pair[0])
+                    self.eliminated_pairs[best_pair[0]] = [best_pair[1], 100]
                     self.holding_pair = False
+                    reversion_time = 60
+
                 elif num_data[best_pair[1]].iloc[self.day] > long_info[1]:
                     self.money += self.sell(best_pair, trading_info[0], trading_info[1], trading_info[2], trading_info[3])
-                    print("$" + str(round(self.money,2))  + " started with $" + self.ori_amount)
+                    print("$" + str(round(self.money,2))  + " started with $" + self.ori_amount + ". " + str(self.day-200) + " passed")
                     print("Long Mean Reverted",  round(long_info[1],2))
+                    if best_pair[0] in self.tradable_pairs and best_pair[1] in self.tradable_pairs[best_pair[0]]:
+                        self.tradable_pairs[best_pair[0]].remove(best_pair[1])
+                    else:
+                        self.tradable_pairs[best_pair[1]].remove(best_pair[0])
+                    self.eliminated_pairs[best_pair[0]] = [best_pair[1], 100]
                     self.holding_pair = False
+                    reversion_time = 60
+
                 elif reversion_time == 0:
                     self.money += self.sell(best_pair, trading_info[0], trading_info[1], trading_info[2], trading_info[3])
-                    print("$" + str(round(self.money,2))  + " started with $" + self.ori_amount)
+                    print("$" + str(round(self.money,2))  + " started with $" + self.ori_amount + ". " + str(self.day-200) + " passed")
                     print("Holding position greater than reversion time")
+                    if best_pair[0] in self.tradable_pairs and best_pair[1] in self.tradable_pairs[best_pair[0]]:
+                        self.tradable_pairs[best_pair[0]].remove(best_pair[1])
+                    else:
+                        self.tradable_pairs[best_pair[1]].remove(best_pair[0])
+                    self.eliminated_pairs[best_pair[0]] = [best_pair[1], 100]
                     self.holding_pair = False
+                    reversion_time = 60
             else:
                 best_pair = self.find_best_pair(self.tradable_pairs)
                 if best_pair == None or best_pair == []:
@@ -68,8 +103,7 @@ class Simulation(object):
             self.day += 1
             reversion_time -= 1
             days -= 1
-        print(self.return_money())
-
+            self.timer(self.eliminated_pairs)
     def finding_tradable_pairs(self, coint_pairs, dist=10):
         tradable_pairs = {}
         for ticker in coint_pairs:
@@ -98,7 +132,7 @@ class Simulation(object):
 
     def bollinger_bands(self, pair):
 
-        combined_z_scores = data[pair[0]].iloc[self.day-200:self.day] + data[pair[1]].iloc[self.day-200:self.day]
+        combined_z_scores = (data[pair[0]].iloc[self.day-200:self.day] + data[pair[1]].iloc[self.day-200:self.day]) / 2
         upper_bolli_band = combined_z_scores + combined_z_scores.std() * 2
         lower_bolli_band = combined_z_scores - combined_z_scores.std() * 2
         return [upper_bolli_band, combined_z_scores, lower_bolli_band]
@@ -159,6 +193,14 @@ class Simulation(object):
     def return_money(self):
         return str(self.money)
 
+    def timer(self, pairs):
+        for ticker in pairs:
+            if pairs[ticker][1] != 0:
+                pairs[ticker][1] -= 1
+            else:
+                self.tradable_pairs[ticker].append(pairs[ticker][0])
+                print("Pair put back into the trading pair pool")
 
 
-Simulation(1000, 10000)
+
+Simulation(1998, 10000)
