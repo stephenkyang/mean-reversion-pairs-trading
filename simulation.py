@@ -215,6 +215,4 @@ class Simulation(object):
                     pairs.pop(ticker)
                     print("Pair put back into the trading pair pool")
 
-
-
 Simulation(700, 10000)

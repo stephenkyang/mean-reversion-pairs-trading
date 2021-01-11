@@ -217,10 +217,3 @@ def find_best_pair(pairs):
     print(best_pair[1] + " Current Price: ", round(num_data[best_pair[1]].iloc[-1], 2))
     print(best_pair[1] + " Stop Loss if stock goes below",  entry_exit_points(best_pair)[1][0])
     print(best_pair[1] + " Sell when stock reaches", entry_exit_points(best_pair)[1][1])
-
-"""finding_correlated_pairs(correlation_matrix)
-finding_cointegrated_pairs(correlated_pairs)
-print(finding_tradable_pairs(cointegrated_pairs))"""
-
-#print(finding_tradable_pairs(saved_tradable_pairs))
-#plotting_stocks(["ORLY", "FR"], 2000)
