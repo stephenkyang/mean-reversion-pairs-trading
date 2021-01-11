@@ -14,13 +14,13 @@ data = pd.read_csv("normalized-historical-data.csv")
 data.iloc[0] = data.iloc[1]
 data = data.fillna(method='ffill')
 data = data.dropna(1)
-data = data
+data = data.iloc[1300:2000]
 
 days = 500
 
 class Simulation(object):
     elim_pairs = pairs
-    def __init__(self, days, money, reversion_time=60):
+    def __init__(self, days, money, reversion_time=45):
         self.day = 200
         self.days = int(days)
         self.tradable_pairs = saved_tradable_pairs
@@ -41,7 +41,7 @@ class Simulation(object):
                         self.tradable_pairs[best_pair[1]].remove(best_pair[0])
                     self.eliminated_pairs[best_pair[0]] = [best_pair[1], 100]
                     self.holding_pair = False
-                    reversion_time = 60
+                    reversion_time = 30
 
                 elif num_data[best_pair[0]].iloc[self.day] < short_info[1]:
                     self.money += self.sell(best_pair, trading_info[0], trading_info[1], trading_info[2], trading_info[3])
@@ -53,7 +53,7 @@ class Simulation(object):
                         self.tradable_pairs[best_pair[1]].remove(best_pair[0])
                     self.eliminated_pairs[best_pair[0]] = [best_pair[1], 100]
                     self.holding_pair = False
-                    reversion_time = 60
+                    reversion_time = 30
 
                 elif num_data[best_pair[1]].iloc[self.day] < long_info[0]:
                     self.money += self.sell(best_pair, trading_info[0], trading_info[1], trading_info[2], trading_info[3])
@@ -65,7 +65,7 @@ class Simulation(object):
                         self.tradable_pairs[best_pair[1]].remove(best_pair[0])
                     self.eliminated_pairs[best_pair[0]] = [best_pair[1], 100]
                     self.holding_pair = False
-                    reversion_time = 60
+                    reversion_time = 30
 
                 elif num_data[best_pair[1]].iloc[self.day] > long_info[1]:
                     self.money += self.sell(best_pair, trading_info[0], trading_info[1], trading_info[2], trading_info[3])
@@ -77,7 +77,7 @@ class Simulation(object):
                         self.tradable_pairs[best_pair[1]].remove(best_pair[0])
                     self.eliminated_pairs[best_pair[0]] = [best_pair[1], 100]
                     self.holding_pair = False
-                    reversion_time = 60
+                    reversion_time = 30
 
                 elif reversion_time == 0:
                     self.money += self.sell(best_pair, trading_info[0], trading_info[1], trading_info[2], trading_info[3])
@@ -89,7 +89,7 @@ class Simulation(object):
                         self.tradable_pairs[best_pair[1]].remove(best_pair[0])
                     self.eliminated_pairs[best_pair[0]] = [best_pair[1], 100]
                     self.holding_pair = False
-                    reversion_time = 60
+                    reversion_time = 30
             else:
                 best_pair = self.find_best_pair(self.tradable_pairs)
                 if best_pair == None or best_pair == []:
@@ -104,7 +104,8 @@ class Simulation(object):
             reversion_time -= 1
             days -= 1
             self.timer(self.eliminated_pairs)
-    def finding_tradable_pairs(self, coint_pairs, dist=10):
+        print(self.return_money())
+    def finding_tradable_pairs(self, coint_pairs, dist=1.5):
         tradable_pairs = {}
         for ticker in coint_pairs:
             for other_ticker in coint_pairs[ticker]:
@@ -116,10 +117,10 @@ class Simulation(object):
                 middle_bolli_last = bolli_bands[1].iloc[-1]
                 lower_bolli_last = bolli_bands[2].iloc[-1]
 
-                if (abs(ticker_last - upper_bolli_last) < dist and other_ticker_last < middle_bolli_last and ticker_last > middle_bolli_last
-                    or abs(other_ticker_last - upper_bolli_last) < dist and ticker_last < middle_bolli_last and other_ticker_last > middle_bolli_last
-                    or abs(ticker_last - lower_bolli_last) < dist and other_ticker_last > middle_bolli_last and ticker_last < middle_bolli_last
-                    or abs(other_ticker_last - lower_bolli_last) < dist and ticker_last > middle_bolli_last and other_ticker_last < middle_bolli_last):
+                if (abs(ticker_last - middle_bolli_last) < dist and other_ticker_last < middle_bolli_last and ticker_last > middle_bolli_last
+                    or abs(other_ticker_last - middle_bolli_last) < dist and ticker_last < middle_bolli_last and other_ticker_last > middle_bolli_last
+                    or abs(ticker_last - middle_bolli_last) < dist and other_ticker_last > middle_bolli_last and ticker_last < middle_bolli_last
+                    or abs(other_ticker_last - middle_bolli_last) < dist and ticker_last > middle_bolli_last and other_ticker_last < middle_bolli_last):
 
                     if ticker in tradable_pairs:
                         tradable_pairs[ticker].extend([other_ticker])
@@ -158,11 +159,16 @@ class Simulation(object):
         ticker0_rec = data[pair[0]].iloc[self.day]
         ticker1_rec = data[pair[1]].iloc[self.day]
         short_stock, long_stock = pair[0], pair[1]
-        short_stock_exit = [round((num_data[short_stock].iloc[self.day] + num_data[short_stock].iloc[self.day-200:self.day].std() * 1.5), 2),
-                            round((middle_bolli_last * num_data[short_stock].iloc[self.day-200:self.day].std()) + num_data[short_stock].iloc[self.day-200:self.day].mean(),2)]
-        long_stock_exit = [round((num_data[long_stock].iloc[self.day] - num_data[short_stock].iloc[self.day-200:self.day].std() * 1.5), 2),
-                            round((middle_bolli_last * num_data[long_stock].iloc[self.day-200:self.day].std()) + num_data[long_stock].iloc[self.day-200:self.day].mean(), 2)]
-
+        if abs(middle_bolli_last - ticker0_rec) > abs(middle_bolli_last - ticker1_rec):
+            short_stock_exit = [round((num_data[short_stock].iloc[self.day] + num_data[short_stock].iloc[self.day-200:self.day].std() * 1), 2),
+                                round((middle_bolli_last * num_data[short_stock].iloc[self.day-200:self.day].std()) + num_data[short_stock].iloc[self.day-200:self.day].mean(),2)]
+            long_stock_exit = [round((num_data[long_stock].iloc[self.day] - num_data[long_stock].iloc[self.day-200:self.day].std() * 1), 2),
+                                round((middle_bolli_last * num_data[long_stock].iloc[self.day-200:self.day].std() * 2) + num_data[long_stock].iloc[self.day-200:self.day].mean(), 2)]
+        else:
+            short_stock_exit = [round((num_data[short_stock].iloc[self.day] + num_data[short_stock].iloc[self.day-200:self.day].std() * 1), 2),
+                                round((middle_bolli_last * num_data[short_stock].iloc[self.day-200:self.day].std() * 2) + num_data[short_stock].iloc[self.day-200:self.day].mean(),2)]
+            long_stock_exit = [round((num_data[long_stock].iloc[self.day] - num_data[long_stock].iloc[self.day-200:self.day].std() * 1), 2),
+                                round((middle_bolli_last * num_data[long_stock].iloc[self.day-200:self.day].std()) + num_data[long_stock].iloc[self.day-200:self.day].mean(), 2)]
         return [short_stock_exit, long_stock_exit]
 
     def buy(self, pair, money):
@@ -193,14 +199,22 @@ class Simulation(object):
     def return_money(self):
         return str(self.money)
 
+
     def timer(self, pairs):
-        for ticker in pairs:
+        for ticker in pairs.copy().keys():
             if pairs[ticker][1] != 0:
                 pairs[ticker][1] -= 1
             else:
-                self.tradable_pairs[ticker].append(pairs[ticker][0])
-                print("Pair put back into the trading pair pool")
+                if ticker in self.tradable_pairs:
+                    self.tradable_pairs[ticker].append(pairs[ticker][0])
+                    pairs.pop(ticker)
+                    print("Pair put back into the trading pair pool")
+
+                else:
+                    self.tradable_pairs[ticker] = [pairs[ticker][0]]
+                    pairs.pop(ticker)
+                    print("Pair put back into the trading pair pool")
 
 
 
-Simulation(1998, 10000)
+Simulation(700, 10000)

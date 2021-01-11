@@ -16,7 +16,7 @@ data = pd.read_csv("normalized-historical-data.csv")
 data.iloc[0] = data.iloc[1]
 data = data.fillna(method='ffill')
 data = data.dropna(1)
-data = data.iloc[:100]
+
 
 
 print(data.isnull().values.any())
@@ -52,8 +52,8 @@ def ADF_test(ticker1, ticker2):
 #have the bollinger bands of the ratio of two pairs, select a pair if one ticker is above the moving day avg and close to the
 #top band and the other is below the moving day avg and close to the bottom band
 
-def bollinger_bands(pair):
-    combined_z_scores = (data[pair[0]] + data[pair[1]]) / 2
+def bollinger_bands(pair,days = 200):
+    combined_z_scores = (data[pair[0]].iloc[-days:-1] + data[pair[1]].iloc[-days:-1]) / 2
     upper_bolli_band = combined_z_scores + combined_z_scores.std() * 2
     lower_bolli_band = combined_z_scores - combined_z_scores.std() * 2
     return [upper_bolli_band, combined_z_scores, lower_bolli_band]
@@ -66,7 +66,7 @@ cointegrated_pairs = {}
 tradable_pairs = {}
 
 #using correlation to eliminate clearly non-cointegrated pairs for efficency
-def finding_correlated_pairs(correlation_matrix, threshold =.55): #threshold arbitrary, revise if necessary
+def finding_correlated_pairs(correlation_matrix, threshold =.8): #threshold arbitrary, revise if necessary
     for ticker in correlation_matrix:
         for other_ticker, value in correlation_matrix[ticker].items():
             if value > threshold and value != 1.00 and (other_ticker not in correlated_pairs
@@ -78,7 +78,7 @@ def finding_correlated_pairs(correlation_matrix, threshold =.55): #threshold arb
 
 
 
-def finding_cointegrated_pairs(corr_pairs, reversion_time=120):
+def finding_cointegrated_pairs(corr_pairs, reversion_time=30):
     for ticker in corr_pairs:
         print(ticker)
         for other_ticker in corr_pairs[ticker]:
@@ -91,7 +91,7 @@ def finding_cointegrated_pairs(corr_pairs, reversion_time=120):
                 else:
                     cointegrated_pairs[ticker] = [other_ticker]
 
-def finding_tradable_pairs(coint_pairs, dist=5):
+def finding_tradable_pairs(coint_pairs, dist=1.5):
     for ticker in coint_pairs:
         for other_ticker in coint_pairs[ticker]:
             pair = [ticker, other_ticker]
@@ -102,10 +102,10 @@ def finding_tradable_pairs(coint_pairs, dist=5):
             middle_bolli_last = bolli_bands[1].iloc[-1]
             lower_bolli_last = bolli_bands[2].iloc[-1]
 
-            if (abs(ticker_last - upper_bolli_last) < dist and other_ticker_last < middle_bolli_last and ticker_last > middle_bolli_last
-                or abs(other_ticker_last - upper_bolli_last) < dist and ticker_last < middle_bolli_last and other_ticker_last > middle_bolli_last
-                or abs(ticker_last - lower_bolli_last) < dist and other_ticker_last > middle_bolli_last and ticker_last < middle_bolli_last
-                or abs(other_ticker_last - lower_bolli_last) < dist and ticker_last > middle_bolli_last and other_ticker_last < middle_bolli_last):
+            if (abs(ticker_last - middle_bolli_last) < dist and other_ticker_last < middle_bolli_last and ticker_last > middle_bolli_last
+                or abs(other_ticker_last - middle_bolli_last) < dist and ticker_last < middle_bolli_last and other_ticker_last > middle_bolli_last
+                or abs(ticker_last - middle_bolli_last) < dist and other_ticker_last > middle_bolli_last and ticker_last < middle_bolli_last
+                or abs(other_ticker_last - middle_bolli_last) < dist and ticker_last > middle_bolli_last and other_ticker_last < middle_bolli_last):
 
                 if ticker in tradable_pairs:
                     tradable_pairs[ticker].extend([other_ticker])
@@ -135,12 +135,12 @@ def half_life(spread):
 
 
 
-def plotting_stocks(pair): #with bollinger bands
-    plt.plot(bollinger_bands([pair[0], pair[1]])[0], label = "Upper Bollinger Band", color= "black")
-    plt.plot(bollinger_bands([pair[0], pair[1]])[1], label = "Combined Z-score Average", color = "black")
-    plt.plot(bollinger_bands([pair[0], pair[1]])[2], label = "Lower Bollinger Band", color = "black")
-    plt.plot(data[pair[0]], label = pair[0])
-    plt.plot(data[pair[1]], label = pair[1])
+def plotting_stocks(pair, days= 200): #with bollinger bands
+    plt.plot(bollinger_bands([pair[0], pair[1]], days)[0], label = "Upper Bollinger Band", color= "black")
+    plt.plot(bollinger_bands([pair[0], pair[1]], days)[1], label = "Combined Z-score Average", color = "black")
+    plt.plot(bollinger_bands([pair[0], pair[1]], days)[2], label = "Lower Bollinger Band", color = "black")
+    plt.plot(data[pair[0]].iloc[-days:-1], label = pair[0])
+    plt.plot(data[pair[1]].iloc[-days:-1], label = pair[1])
     plt.legend(loc='upper left', frameon=False)
     plt.show()
 
@@ -151,10 +151,16 @@ def entry_exit_points(pair):
     ticker0_rec = data[pair[0]].iloc[-1]
     ticker1_rec = data[pair[1]].iloc[-1]
     short_stock, long_stock = (lambda pair: (pair[0], pair[1]) if ticker0_rec > ticker1_rec else (pair[1], pair[0])) (pair)
-    short_stock_exit = [round((num_data[short_stock].iloc[-1] + num_data[short_stock].std()), 2),
-                        round((middle_bolli_last * num_data[short_stock].std()) + num_data[short_stock].mean(),2)]
-    long_stock_exit = [round((num_data[long_stock].iloc[-1] - num_data[long_stock].std() ), 2),
-                        round((middle_bolli_last * num_data[long_stock].std()) + num_data[long_stock].mean(), 2)]
+    if abs(middle_bolli_last - ticker0_rec) > abs(middle_bolli_last - ticker1_rec):
+        short_stock_exit = [round((num_data[short_stock].iloc[self.day] + num_data[short_stock].iloc[self.day-200:self.day].std() * 1), 2),
+                            round((middle_bolli_last * num_data[short_stock].iloc[self.day-200:self.day].std()) + num_data[short_stock].iloc[self.day-200:self.day].mean(),2)]
+        long_stock_exit = [round((num_data[long_stock].iloc[self.day] - num_data[long_stock].iloc[self.day-200:self.day].std() * 1), 2),
+                            round((middle_bolli_last * num_data[long_stock].iloc[self.day-200:self.day].std() * 2) + num_data[long_stock].iloc[self.day-200:self.day].mean(), 2)]
+    else:
+        short_stock_exit = [round((num_data[short_stock].iloc[self.day] + num_data[short_stock].iloc[self.day-200:self.day].std() * 1), 2),
+                            round((middle_bolli_last * num_data[short_stock].iloc[self.day-200:self.day].std() * 2) + num_data[short_stock].iloc[self.day-200:self.day].mean(),2)]
+        long_stock_exit = [round((num_data[long_stock].iloc[self.day] - num_data[long_stock].iloc[self.day-200:self.day].std() * 1), 2),
+                            round((middle_bolli_last * num_data[long_stock].iloc[self.day-200:self.day].std()) + num_data[long_stock].iloc[self.day-200:self.day].mean(), 2)]                round((middle_bolli_last * num_data[long_stock].iloc[-200:-1].std()) + num_data[long_stock].iloc[-200:-1].mean(), 2)]
 
     return [short_stock_exit, long_stock_exit]
 
@@ -206,12 +212,15 @@ def find_best_pair(pairs):
 
     print(best_pair)
     print(best_pair[0] + " Current Price: ",  round(num_data[best_pair[0]].iloc[-1], 2))
-    print(best_pair[0] + " Stop Loss if stock goes above",  round((num_data[best_pair[0]].iloc[-1] + num_data[best_pair[0]].std() ), 2))
-    print(best_pair[0] + " Stop shorting when stock drops to",  round((middle_bolli_last * num_data[best_pair[0]].std()) + num_data[best_pair[0]].mean(),2))
+    print(best_pair[0] + " Stop Loss if stock goes above",  entry_exit_points(best_pair)[0][0])
+    print(best_pair[0] + " Stop shorting when stock drops to",  entry_exit_points(best_pair)[0][1])
     print(best_pair[1] + " Current Price: ", round(num_data[best_pair[1]].iloc[-1], 2))
-    print(best_pair[1] + " Stop Loss if stock goes below",  round((num_data[best_pair[1]].iloc[-1] - num_data[best_pair[1]].std() ), 2))
-    print(best_pair[1] + " Sell when stock reaches", round((middle_bolli_last * num_data[best_pair[1]].std()) + num_data[best_pair[1]].mean(), 2))
-"""
-find_best_pair(finding_tradable_pairs(saved_tradable_pairs))
-plotting_stocks(["INFN", "GILD"])
-"""
+    print(best_pair[1] + " Stop Loss if stock goes below",  entry_exit_points(best_pair)[1][0])
+    print(best_pair[1] + " Sell when stock reaches", entry_exit_points(best_pair)[1][1])
+
+"""finding_correlated_pairs(correlation_matrix)
+finding_cointegrated_pairs(correlated_pairs)
+print(finding_tradable_pairs(cointegrated_pairs))"""
+
+#print(finding_tradable_pairs(saved_tradable_pairs))
+#plotting_stocks(["ORLY", "FR"], 2000)

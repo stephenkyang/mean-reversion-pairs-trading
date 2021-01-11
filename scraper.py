@@ -24,7 +24,7 @@ class yFinanceScraper(object):
 
 if __name__ == "__main__":
     data = pd.read_csv("/Users/stephen/Desktop/Pairs Trading Project/ticker-names-on-NASDAQ-NYSE.csv")
-    data = data[data["Volume"] > 10000][data["IPO Year"] < 2010][data["Symbol"] != "AMHC"]["Symbol"]
+    data = data[data["Volume"] > 1000000][data["IPO Year"] < 2010][data["Symbol"] != "AMHC"]["Symbol"]
 
     #for storing testing data
     scraper = yFinanceScraper(data)
