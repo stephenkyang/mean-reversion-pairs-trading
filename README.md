@@ -7,9 +7,10 @@ After simulating 5 years worth of data, the model grew the initial $10,000 to $2
 ## Methodology
 The three important things needed for builing a model is:
 
-Ensuring the pairs the model chooses are cointegrated
-Ensuring that the cointegrated pairs will revert back to the mean
-Ensuring that the mean reversion will take place in the near future
+1. Ensuring the pairs the model chooses are cointegrated
+2. Ensuring that the cointegrated pairs will revert back to the mean
+3. Ensuring that the mean reversion will take place in the near future
+
 ### Cointegration
 In order to ensure cointegration, I used the augmented Dickey–Fuller test for time series. You could also use the Engle-Granger test and I included it in the model if you prefer that method.
 
