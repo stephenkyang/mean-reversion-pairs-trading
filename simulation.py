@@ -7,7 +7,7 @@ import statsmodels.api as sm
 from statsmodels.tsa.stattools import adfuller as adf
 
 num_data = pd.read_csv("historical-data.csv")
-saved_pairs = pairs
+print(saved_tradable_pairs)
 #data cleaning as the cointegration test can't have any NaN values
 data = pd.read_csv("normalized-historical-data.csv")
 data.iloc[0] = data.iloc[1]
@@ -16,7 +16,7 @@ data = data.dropna(1)
 
 
 class Simulation(object):
-    elim_pairs = pairs
+    elim_pairs = saved_tradable_pairs
     def __init__(self, days, money, reversion_time=45):
         self.day = 200
         self.days = int(days)

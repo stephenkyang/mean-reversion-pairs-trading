@@ -9,13 +9,12 @@ from numpy import polyfit, sqrt, std, subtract, log
 from scraper import yFinanceScraper
 
 num_data = pd.read_csv("historical-data.csv")
-saved_pairs = pairs
+
 #data cleaning as the cointegration test can't have any NaN values
 data = pd.read_csv("normalized-historical-data.csv")
 data.iloc[0] = data.iloc[1]
 data = data.fillna(method='ffill')
 data = data.dropna(1)
-
 
 # 1. Do the necessary regression models to find cointegrating pairs, whether that be ADF, EGranger, or Johansen (done)
 # 2. Find pairs with wide spreads, through the calculation of the Hurst exponent and calculating the half-life of the mean reversion (done)
@@ -62,7 +61,7 @@ cointegrated_pairs = {}
 tradable_pairs = {}
 
 #using correlation to eliminate clearly non-cointegrated pairs for efficency
-def finding_correlated_pairs(correlation_matrix, threshold =.8): #threshold arbitrary, revise if necessary
+def finding_correlated_pairs(correlation_matrix, threshold =.75): #threshold arbitrary, revise if necessary
     for ticker in correlation_matrix:
         for other_ticker, value in correlation_matrix[ticker].items():
             if value > threshold and value != 1.00 and (other_ticker not in correlated_pairs
