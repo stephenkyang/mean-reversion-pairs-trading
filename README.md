@@ -22,10 +22,11 @@ Using the Ornstein-Uhlenbeck process for time-series, you can find the estimated
 
 ## Setting up
 You will need to have Pandas, Numpy, Statsmodels, and yFinance Python libraries installed. Just simply put
+
 ```
-pip install ______
+pip install -r requirements.txt
 ```
-for each library in your terminal.
+to download all libraries necessary for the model.
 
 Once everything is installed, run scraper.py to get the latest information off the Yahoo Finance API. Information will be stored locally.
 
