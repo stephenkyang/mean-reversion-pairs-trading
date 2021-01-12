@@ -11,13 +11,13 @@ The three important things needed for building a model is:
 2. Ensuring that the cointegrated pairs will revert back to the mean
 3. Ensuring that the mean reversion will take place in the near future
 
-### Cointegration
+#### Cointegration
 In order to ensure cointegration, I used the augmented Dickey–Fuller test for time series. You could also use the Engle-Granger test and I included it in the model if you prefer that method.
 
-### Mean Reversion
+#### Mean Reversion
 I used the Hurst exponent to decide whether the cointegrated pairs would revert back to the mean. A Hurst exponent of a time-series that is greater or equal to .5 will mean that the time-series, or trend, is persistent and therefore not tradeable.
 
-### Time
+#### Time
 Using the Ornstein-Uhlenbeck process for time-series, you can find the estimated time of the mean reversion. I set the default as 30 trading days, or about 6 weeks, but if you are more patient you can do 60 or even 120 days.
 
 ## Setting up
