@@ -20,7 +20,7 @@ I used the Hurst exponent to decide whether the cointegrated pairs would revert 
 ### Time
 Using the Ornstein-Uhlenbeck process for time-series, you can find the estimated time of the mean reversion. I set the default as 30 trading days, or about 6 weeks, but if you are more patient you can do 60 or even 120 days.
 
-### Setting up
+## Setting up
 You will need to have Pandas, Numpy, Statsmodels, and yFinance Python libraries installed. Just simply put
 ```
 pip install ______
