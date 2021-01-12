@@ -6,7 +6,7 @@ class yFinanceScraper(object):
     namelist = []
     first = True
     df = None
-    period = "2000"
+    period = "1215"
     def __init__(self,names):
         self.names = names
         self.historicallist= []

@@ -2,8 +2,7 @@ import numpy as np
 import pandas as pd
 import statsmodels
 from scraper import yFinanceScraper
-from model import hurst_analysis, OLS
-from dict_of_pairs import pairs, saved_tradable_pairs
+from model import hurst_analysis, OLS, saved_tradable_pairs
 import statsmodels.api as sm
 from statsmodels.tsa.stattools import adfuller as adf
 
@@ -14,9 +13,7 @@ data = pd.read_csv("normalized-historical-data.csv")
 data.iloc[0] = data.iloc[1]
 data = data.fillna(method='ffill')
 data = data.dropna(1)
-data = data.iloc[1300:2000]
 
-days = 500
 
 class Simulation(object):
     elim_pairs = pairs
@@ -33,7 +30,7 @@ class Simulation(object):
             if self.holding_pair == True:
                 if num_data[best_pair[0]].iloc[self.day] > short_info[0]:
                     self.money += self.sell(best_pair, trading_info[0], trading_info[1], trading_info[2], trading_info[3])
-                    print("$" + str(round(self.money,2))  + " started with $" + self.ori_amount + ". " + str(self.day-200) + " passed")
+                    print("$" + str(round(self.money,2))  + " started with $" + self.ori_amount + ". " + str(self.day-200) + " days passed")
                     print("Short Stop Loss", round(short_info[1],2))
                     if best_pair[0] in self.tradable_pairs and best_pair[1] in self.tradable_pairs[best_pair[0]]:
                         self.tradable_pairs[best_pair[0]].remove(best_pair[1])
@@ -45,7 +42,7 @@ class Simulation(object):
 
                 elif num_data[best_pair[0]].iloc[self.day] < short_info[1]:
                     self.money += self.sell(best_pair, trading_info[0], trading_info[1], trading_info[2], trading_info[3])
-                    print("$" + str(round(self.money,2))  + " started with $" + self.ori_amount + ". " + str(self.day-200) + " passed")
+                    print("$" + str(round(self.money,2))  + " started with $" + self.ori_amount + ". " + str(self.day-200) + " days passed")
                     print("Short Mean Reverted", round(short_info[1],2))
                     if best_pair[0] in self.tradable_pairs and best_pair[1] in self.tradable_pairs[best_pair[0]]:
                         self.tradable_pairs[best_pair[0]].remove(best_pair[1])
@@ -57,7 +54,7 @@ class Simulation(object):
 
                 elif num_data[best_pair[1]].iloc[self.day] < long_info[0]:
                     self.money += self.sell(best_pair, trading_info[0], trading_info[1], trading_info[2], trading_info[3])
-                    print("$" + str(round(self.money,2))  + " started with $" + self.ori_amount + ". " + str(self.day-200) + " passed")
+                    print("$" + str(round(self.money,2))  + " started with $" + self.ori_amount + ". " + str(self.day-200) + " days passed")
                     print("Long Stop Loss", round(long_info[0],2))
                     if best_pair[0] in self.tradable_pairs and best_pair[1] in self.tradable_pairs[best_pair[0]]:
                         self.tradable_pairs[best_pair[0]].remove(best_pair[1])
@@ -69,7 +66,7 @@ class Simulation(object):
 
                 elif num_data[best_pair[1]].iloc[self.day] > long_info[1]:
                     self.money += self.sell(best_pair, trading_info[0], trading_info[1], trading_info[2], trading_info[3])
-                    print("$" + str(round(self.money,2))  + " started with $" + self.ori_amount + ". " + str(self.day-200) + " passed")
+                    print("$" + str(round(self.money,2))  + " started with $" + self.ori_amount + ". " + str(self.day-200) + " days passed")
                     print("Long Mean Reverted",  round(long_info[1],2))
                     if best_pair[0] in self.tradable_pairs and best_pair[1] in self.tradable_pairs[best_pair[0]]:
                         self.tradable_pairs[best_pair[0]].remove(best_pair[1])
@@ -81,7 +78,7 @@ class Simulation(object):
 
                 elif reversion_time == 0:
                     self.money += self.sell(best_pair, trading_info[0], trading_info[1], trading_info[2], trading_info[3])
-                    print("$" + str(round(self.money,2))  + " started with $" + self.ori_amount + ". " + str(self.day-200) + " passed")
+                    print("$" + str(round(self.money,2))  + " started with $" + self.ori_amount + ". " + str(self.day-200) + " days passed")
                     print("Holding position greater than reversion time")
                     if best_pair[0] in self.tradable_pairs and best_pair[1] in self.tradable_pairs[best_pair[0]]:
                         self.tradable_pairs[best_pair[0]].remove(best_pair[1])
@@ -144,7 +141,7 @@ class Simulation(object):
         for ticker in pairs:
             for other_ticker in pairs[ticker]:
                 pair = [ticker, other_ticker]
-                pair = (lambda pair: [ticker, other_ticker] if data[pair[0]].iloc[self.day] > data[pair[1]].iloc[self.day] else [other_ticker, ticker]) (pair)
+                pair = (lambda pair: [ticker, other_ticker] if data[ticker].iloc[self.day] > data[other_ticker].iloc[self.day] else [other_ticker, ticker]) (pair)
                 if self.ADF_test(ticker, other_ticker)[4]["1%"] < minimum_ADF and (self.entry_exit_points(pair)[0][0] > num_data[pair[0]].iloc[self.day] > self.entry_exit_points(pair)[0][1]
                                                                           and self.entry_exit_points(pair)[1][0] < num_data[pair[1]].iloc[self.day] < self.entry_exit_points(pair)[1][1]):
 
@@ -176,13 +173,13 @@ class Simulation(object):
         long_last = num_data[pair[1]].iloc[self.day]
         short_amount = (self.money / 2) / short_last
         long_amount = (self.money / 2) / long_last
-        print("Shorted " + pair[0] + " at " + str(short_last) + " Bought " + pair[1] + " at " + str(long_last))
+        print("Shorted " + pair[0] + " at " + str(round(short_last, 2)) + " Bought " + pair[1] + " at " + str(round(long_last, 2)))
         return [short_last, short_amount, long_last, long_amount]
 
     def sell(self, pair, short_orginal, short_amount, long_original, long_amount):
         short_last = num_data[pair[0]].iloc[self.day]
         long_last = num_data[pair[1]].iloc[self.day]
-        print("Stopped shorting " + pair[0] + " at " + str(short_last) + " Sold " + pair[1] + " at " + str(long_last))
+        print("Stopped shorting " + pair[0] + " at " + str(round(short_last, 2)) + " Sold " + pair[1] + " at " + str(round(long_last, 2)))
         return (short_orginal - short_last) * short_amount + (long_last - long_original) * long_amount
 
     def OLS(self, ticker1, ticker2):
@@ -215,4 +212,4 @@ class Simulation(object):
                     pairs.pop(ticker)
                     print("Pair put back into the trading pair pool")
 
-Simulation(700, 10000)
+Simulation(1215, 10000)

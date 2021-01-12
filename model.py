@@ -7,7 +7,6 @@ import matplotlib.pyplot as plt
 import statsmodels.tsa.vector_ar.vecm
 from numpy import polyfit, sqrt, std, subtract, log
 from scraper import yFinanceScraper
-from dict_of_pairs import pairs, saved_tradable_pairs
 
 num_data = pd.read_csv("historical-data.csv")
 saved_pairs = pairs
@@ -17,9 +16,6 @@ data.iloc[0] = data.iloc[1]
 data = data.fillna(method='ffill')
 data = data.dropna(1)
 
-
-
-print(data.isnull().values.any())
 
 # 1. Do the necessary regression models to find cointegrating pairs, whether that be ADF, EGranger, or Johansen (done)
 # 2. Find pairs with wide spreads, through the calculation of the Hurst exponent and calculating the half-life of the mean reversion (done)
@@ -80,7 +76,6 @@ def finding_correlated_pairs(correlation_matrix, threshold =.8): #threshold arbi
 
 def finding_cointegrated_pairs(corr_pairs, reversion_time=30):
     for ticker in corr_pairs:
-        print(ticker)
         for other_ticker in corr_pairs[ticker]:
             results = ADF_test(ticker, other_ticker)
             spread = OLS(ticker, other_ticker)
@@ -152,16 +147,15 @@ def entry_exit_points(pair):
     ticker1_rec = data[pair[1]].iloc[-1]
     short_stock, long_stock = (lambda pair: (pair[0], pair[1]) if ticker0_rec > ticker1_rec else (pair[1], pair[0])) (pair)
     if abs(middle_bolli_last - ticker0_rec) > abs(middle_bolli_last - ticker1_rec):
-        short_stock_exit = [round((num_data[short_stock].iloc[self.day] + num_data[short_stock].iloc[self.day-200:self.day].std() * 1), 2),
-                            round((middle_bolli_last * num_data[short_stock].iloc[self.day-200:self.day].std()) + num_data[short_stock].iloc[self.day-200:self.day].mean(),2)]
-        long_stock_exit = [round((num_data[long_stock].iloc[self.day] - num_data[long_stock].iloc[self.day-200:self.day].std() * 1), 2),
-                            round((middle_bolli_last * num_data[long_stock].iloc[self.day-200:self.day].std() * 2) + num_data[long_stock].iloc[self.day-200:self.day].mean(), 2)]
+        short_stock_exit = [round((num_data[short_stock].iloc[-1] + num_data[short_stock].iloc[-200:-1].std() * 1), 2),
+                            round((middle_bolli_last * num_data[short_stock].iloc[-200:-1].std()) + num_data[short_stock].iloc[-200:-1].mean(),2)]
+        long_stock_exit = [round((num_data[long_stock].iloc[-1] - num_data[long_stock].iloc[-200:-1].std() * 1), 2),
+                            round((middle_bolli_last * num_data[long_stock].iloc[-200:-1].std() * 2) + num_data[long_stock].iloc[200:-1].mean(), 2)]
     else:
-        short_stock_exit = [round((num_data[short_stock].iloc[self.day] + num_data[short_stock].iloc[self.day-200:self.day].std() * 1), 2),
-                            round((middle_bolli_last * num_data[short_stock].iloc[self.day-200:self.day].std() * 2) + num_data[short_stock].iloc[self.day-200:self.day].mean(),2)]
-        long_stock_exit = [round((num_data[long_stock].iloc[self.day] - num_data[long_stock].iloc[self.day-200:self.day].std() * 1), 2),
-                            round((middle_bolli_last * num_data[long_stock].iloc[self.day-200:self.day].std()) + num_data[long_stock].iloc[self.day-200:self.day].mean(), 2)]                round((middle_bolli_last * num_data[long_stock].iloc[-200:-1].std()) + num_data[long_stock].iloc[-200:-1].mean(), 2)]
-
+        short_stock_exit = [round((num_data[short_stock].iloc[-1] + num_data[short_stock].iloc[-200:-1].std() * 1), 2),
+                            round((middle_bolli_last * num_data[short_stock].iloc[-200:-1].std() * 2) + num_data[short_stock].iloc[-200:-1].mean(),2)]
+        long_stock_exit = [round((num_data[long_stock].iloc[-1] - num_data[long_stock].iloc[-200:-1].std() * 1), 2),
+                            round((middle_bolli_last * num_data[long_stock].iloc[-200:-1].std()) + num_data[long_stock].iloc[-200:-1].mean(), 2)]
     return [short_stock_exit, long_stock_exit]
 
 
@@ -217,3 +211,9 @@ def find_best_pair(pairs):
     print(best_pair[1] + " Current Price: ", round(num_data[best_pair[1]].iloc[-1], 2))
     print(best_pair[1] + " Stop Loss if stock goes below",  entry_exit_points(best_pair)[1][0])
     print(best_pair[1] + " Sell when stock reaches", entry_exit_points(best_pair)[1][1])
+
+finding_correlated_pairs(correlation_matrix)
+finding_cointegrated_pairs(correlated_pairs)
+saved_tradable_pairs = finding_tradable_pairs(cointegrated_pairs)
+if __name__ == "__main__":
+    find_best_pair(saved_tradable_pairs)
